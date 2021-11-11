@@ -1,0 +1,17 @@
+{
+  "name": "package.json",
+  "version": "1.0.0",
+  "description": "",
+  "main": "test.js",
+  "scripts": {
+    "testWebTours": "k6 run ./web_tours_script.js",
+    "debugWebTours": "k6 run --http-debug ./web_tours_script.js",
+    "testYaRu": "k6 run --http-debug ./ya_script.js",
+    "testWwwRu": "k6 run --http-debug ./wwwru_script.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "har-to-k6": "^0.9.0"
+  }
+}
