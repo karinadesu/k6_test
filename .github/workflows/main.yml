@@ -1,0 +1,66 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Push Container to Heroku!
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      output_port: ${{ steps.port.outputs.testport }}
+    steps:
+    - uses: actions/checkout@v1
+    
+    - name: Login to Heroku Container registry
+      env: 
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: heroku container:login
+    
+    - name: Build and push
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: heroku container:push -a ${{ secrets.HEROKU_APP_NAME }} web 
+    
+    - name: Release
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: heroku container:release -a ${{ secrets.HEROKU_APP_NAME }} web
+    
+    - name: Sleep
+      run: sleep 30
+
+    - id: port
+      name: Check port
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: echo ::set-output name=testport::$(heroku logs -n 3 -a k6-server-sampler |  grep -o 'Running on this port [0-9]\+' | sed -e 's/[^0-9]//g')
+
+    - name: Echo port heroku
+      run: echo "${{steps.port.outputs.testport}}"
+
+  loadtest:
+    name: k6 local test run 
+    runs-on: ubuntu-latest
+    container: docker://loadimpact/k6:0.34.1
+    needs: [build]
+
+    steps:
+    - name: Echo port
+      run: echo "${{needs.build.outputs.output_port}}"
+
+    - name: Checkout
+      uses: actions/checkout@v1
+    
+    - name: Run k6 local test
+      uses: k6io/action@v0.1
+      with:
+        filename: script.js
+      env:
+        HOST: ${{ secrets.HEROKU_APP_NAME }}.herokuapp.com
+        PORT: 443
