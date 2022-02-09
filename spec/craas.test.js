@@ -4,110 +4,106 @@ import { describe } from 'https://jslib.k6.io/expect/0.0.5/index.js';
 import { Trend } from 'k6/metrics';
 import execution from 'k6/execution';
 
-const baseUrl = "stage-envoy.cr.selcloud.org/";
-const registryName = "kar/";
-const images = ["rediska","postgres","hello"]
+const baseUrl = "cr.selcloud.ru/";
 
-export let options = {
-  stages: [
-    { duration: '5m', target: 30 }, // simulate ramp-up of traffic from 1 to 6 users over 5 minutes.
-    //{ duration: '10m', target:  }, // stay at 6 users for 10 minutes
-    //{ duration: '1m', target: 3 }, // ramp-up to 8 users over 5 minutes 
-    //{ duration: '1m', target: 3 }, // stay at 8 users for for 10 minutes
-    //{ duration: '1s', target: 0 }, // ramp-down to 0 users
-  
-  ],
+export const options = {
+  vus: 1,
+  duration: '20m',
 };
 
-
-function getRandomFromArr(arr) {
-  let i = Math.floor(Math.random() * arr.length);
-  return arr[i];
-}
-
-let imagesHub = ["ubuntu",
-                      "redis",
-                      "couchbase",
-                      "mysql",
-                      "rabbitmq",
-                      "centos",
-                      "tomcat",
-                      "debian",
-                      "sonarqube",
-                      "nextcloud",
-                      "php",
-                      "bash",
-                      "docker",
-                      "maven",
-                      "node",
-                      "amazonlinux",
-                      "caddy",
-                      "eclipse-mosquitto",
-                      "telegraf",
-                      "cassandra",
-                      "chronograf",
-                      "vault",
-                      "adminer",
-                      "ghost",
-                      "matomo",
-                      "logstash",
-                      "gradle",
-                      "mongo-express",
-                      "swarm",
-                      "rethinkdb"
-              ];
-let current_image =  getRandomFromArr(imagesHub);
+const username = "token";
+const password = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
 
 export default function testSuite() {
+
+  let registryName = "yahina/";
+  let image = "3gbimag2e";
+  let tag = ":latest";
+  let current_image = `${baseUrl}${registryName}${image}`;
+
   
-  /*describe('01. Delete', (t) => {
+  //we have to be sure that the image doesn't exist
+  describe('01. Delete image', (t) => {
 
     let imagesList = (exec.command("docker", ["image", "ls"]));
-
+    let res;
     let parseARR = imagesList.split('\n')
-
     parseARR.forEach(line =>{
-      if (line.includes(baseUrl + registryName + images[1])) {
-          console.log("FOUND");
-          console.log("LINE: ", line);
-          
-          console.log("\nDELETE: ", exec.command("docker", [ "rmi", "-f", "stage-envoy.cr.selcloud.org/kafr/postgres:latest"]));
+      console.log("line ", line);
+      if (current_image.includes(line)) {
+          console.log(`FOUND IMAGE: ${current_image}`);
+          res = exec.command("docker", [ "rmi", "-f", `${current_image}${tag}`]);
+          console.log("RES: ", res);
+      } else {
+        console.log(`The image ${current_image} doesn't exist locally`)
       }
     })
-  })
+    check(res, {
+      'Delete image': (r) => r.includes(`Untagged: ${current_image}${tag}`)
+    });
 
-  &&*/
-
-
-  describe('02. Pull', (t) => {
-    let start = new Date() - new Date(execution.scenario.startTime);
-
-    const resp = exec.command("docker",["pull", `${current_image}`]);
-    console.log("\nRES: ", resp);
-    
-    sleep(1);
-
-    let end = new Date() - new Date(execution.scenario.startTime);
-
-    console.log(`Duration:  ${end - start}ms  `);
+      sleep(1);
   })
 
   &&
 
-  describe('03. Delete', (t) => {
+  //login to craas to be able to download images
+  describe('02. Login', (t) => {
+
+    let start = new Date() - new Date(execution.scenario.startTime);
+
+    const res = exec.command("docker", ["login", `${baseUrl}`, "-u", `${username}`, "-p", `${password}`]);
+    console.log("\nRES: ", res);
+    
+    let end = new Date() - new Date(execution.scenario.startTime);
+
+    console.log(`Duration:  ${end - start}ms ${current_image} `);
+
+    check(res, {
+      'Login': (r) => r.includes(`Login Succeeded`)
+    });
+
+    sleep(1);
+  })
+
+  &&
+
+  //execution of 'docker pull <image> command'
+  describe('03. Pull', (t) => {
+    let start = new Date() - new Date(execution.scenario.startTime);
+
+    const res = exec.command("docker",["pull", `${current_image}`]);
+    console.log("\nRES: ", res);
+    
+    let end = new Date() - new Date(execution.scenario.startTime);
+
+    console.log(`Duration:  ${end - start}ms ${current_image} `);
+
+    check(res, {
+       'Pull': (r) => r.includes(`Status: Downloaded newer image`)
+     });
+
+    sleep(1);
+  })
+
+  //we have to delete the image for further downloads
+  describe('02. Delete image', (t) => {
 
     let imagesList = (exec.command("docker", ["image", "ls"]));
-
-    //let parseARR = imagesList.split('\n')
-    console.log("\nDELETE: ", exec.command("docker", [ "rmi", "-f", `${current_image}`]));
-    /*parseARR.forEach(line =>{
-      if (line.includes(baseUrl + registryName + images[1])) {
-          console.log("FOUND");
-          console.log("LINE: ", line);
-          
-          console.log("\nDELETE: ", exec.command("docker", [ "rmi", "-f", `${current_image}`]));
+    let res;
+    let parseARR = imagesList.split('\n')
+    parseARR.forEach(line =>{
+      console.log("line ", line);
+      if (current_image.includes(line)) {
+          console.log(`SUCCESSFULLY FOUND IMAGE: ${current_image}`);
+          res = exec.command("docker", [ "rmi", "-f", `${current_image}${tag}`]);
+          console.log("RES: ", res);
       }
-    })*/
-  
+    })
+    check(res, {
+      'Delete image': (r) => r.includes(`Untagged: ${current_image}${tag}`)
+    });
+
+      sleep(1);
   })
 }

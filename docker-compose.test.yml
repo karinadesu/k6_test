@@ -1,3 +1,0 @@
-sut:
-  build: .
-  command: k6 run spec/web_tours_script.js
