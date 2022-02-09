@@ -26,7 +26,7 @@ export default function testSuite() {
   //we have to be sure that the image doesn't exist
   describe('01. Delete image', (t) => {
 
-    res = exec.command("docker", ["system", "prune", "--volumes", "--all", "--force"]);
+    res = exec.command("docker system", ["prune", "--volumes", "--all", "--force"]);
 
     // check(res, {
     //   'Delete image': (r) => r.includes("Total reclaimed space")
