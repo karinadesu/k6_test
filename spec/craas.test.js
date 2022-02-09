@@ -4,45 +4,41 @@ import { describe } from 'https://jslib.k6.io/expect/0.0.5/index.js';
 import { Trend } from 'k6/metrics';
 import execution from 'k6/execution';
 
-const baseUrl = "cr.selcloud.ru/";
+const BASEURL = "cr.selcloud.ru/";
 
 export const options = {
   vus: 1,
-  duration: '20m',
+  duration: '1m',
 };
 
-const username = "token";
-const password = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
+const USERNAME = "token";
+const PASSWORD = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
 
 export default function testSuite() {
 
   let registryName = "yahina/";
-  let image = "3gbimag2e";
+  let image = "9gbimage";
   let tag = ":latest";
-  let current_image = `${baseUrl}${registryName}${image}`;
+  let IMAGE = `${BASEURL}${registryName}${image}`;
+  let res;
 
   
   //we have to be sure that the image doesn't exist
   describe('01. Delete image', (t) => {
 
     let imagesList = (exec.command("docker", ["image", "ls"]));
-    let res;
     let parseARR = imagesList.split('\n')
-    parseARR.forEach(line =>{
-      console.log("line ", line);
-      if (current_image.includes(line)) {
-          console.log(`FOUND IMAGE: ${current_image}`);
-          res = exec.command("docker", [ "rmi", "-f", `${current_image}${tag}`]);
-          console.log("RES: ", res);
-      } else {
-        console.log(`The image ${current_image} doesn't exist locally`)
-      }
-    })
+
+    
+      //console.log("line ", line);docker system prune --volumes --all
+    res = exec.command("yes", "|", "docker", [ "system", "prune", "--volumes", "--all"]);
+
     check(res, {
-      'Delete image': (r) => r.includes(`Untagged: ${current_image}${tag}`)
+      'Delete image': (r) => r.includes == (`Total reclaimed space`)
     });
 
-      sleep(1);
+    console.log("Delete image (01): ", JSON.stringify(res))
+    sleep(1);
   })
 
   &&
@@ -52,12 +48,12 @@ export default function testSuite() {
 
     let start = new Date() - new Date(execution.scenario.startTime);
 
-    const res = exec.command("docker", ["login", `${baseUrl}`, "-u", `${username}`, "-p", `${password}`]);
-    console.log("\nRES: ", res);
+    res = exec.command("docker", ["login", `${BASEURL}`, "-u", `${USERNAME}`, "-p", `${PASSWORD}`]);
+    console.log("\nLogin: ", JSON.stringify(res));
     
     let end = new Date() - new Date(execution.scenario.startTime);
 
-    console.log(`Duration:  ${end - start}ms ${current_image} `);
+    console.log(`Duration:  ${end - start}ms ${IMAGE} `);
 
     check(res, {
       'Login': (r) => r.includes(`Login Succeeded`)
@@ -72,12 +68,12 @@ export default function testSuite() {
   describe('03. Pull', (t) => {
     let start = new Date() - new Date(execution.scenario.startTime);
 
-    const res = exec.command("docker",["pull", `${current_image}`]);
-    console.log("\nRES: ", res);
+    const res = exec.command("docker",["pull", `${IMAGE}`]);
+    console.log("\nPull Image: ", JSON.stringify(res));
     
     let end = new Date() - new Date(execution.scenario.startTime);
 
-    console.log(`Duration:  ${end - start}ms ${current_image} `);
+    console.log(`Duration:  ${end - start}ms ${IMAGE} `);
 
     check(res, {
        'Pull': (r) => r.includes(`Status: Downloaded newer image`)
@@ -90,18 +86,21 @@ export default function testSuite() {
   describe('02. Delete image', (t) => {
 
     let imagesList = (exec.command("docker", ["image", "ls"]));
-    let res;
     let parseARR = imagesList.split('\n')
+
     parseARR.forEach(line =>{
+
       console.log("line ", line);
-      if (current_image.includes(line)) {
-          console.log(`SUCCESSFULLY FOUND IMAGE: ${current_image}`);
-          res = exec.command("docker", [ "rmi", "-f", `${current_image}${tag}`]);
-          console.log("RES: ", res);
+
+      if (IMAGE.includes(line)) {
+
+          console.log(`SUCCESSFULLY FOUND IMAGE: ${IMAGE}`);
+          res = exec.command("docker", [ "rmi", "-f", `${IMAGE}${tag}`]);
+          console.log("Delete Image (last case): ", JSON.stringify(res));
       }
     })
     check(res, {
-      'Delete image': (r) => r.includes(`Untagged: ${current_image}${tag}`)
+      'Delete image': (r) => r.includes(`Untagged: ${IMAGE}${tag}`)
     });
 
       sleep(1);
