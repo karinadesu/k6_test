@@ -28,9 +28,9 @@ export default function testSuite() {
 
     res = exec.command("docker", [ "system", "prune", "--volumes", "--all", "--force"]);
 
-    check(res, {
-      'Delete image': (r) => r.includes("Total reclaimed space")
-    });
+    // check(res, {
+    //   'Delete image': (r) => r.includes("Total reclaimed space")
+    // });
 
     console.log("Delete image (01): ", JSON.stringify(res))
     sleep(1);
