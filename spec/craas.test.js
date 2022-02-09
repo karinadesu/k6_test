@@ -31,7 +31,7 @@ export default function testSuite() {
     res = exec.command("docker", [ "system", "prune", "--volumes", "--all", "-f"]);
 
     check(res, {
-      'Delete image': (r) => r.includes == (`Total reclaimed space`)
+      'Delete image': (r) => r.includes("Total reclaimed space")
     });
 
     console.log("Delete image (01): ", JSON.stringify(res))
@@ -78,7 +78,7 @@ export default function testSuite() {
 
     sleep(1);
   })
-
+/*
   //we have to delete the image for further downloads
   describe('02. Delete image', (t) => {
 
@@ -101,5 +101,5 @@ export default function testSuite() {
     });
 
       sleep(1);
-  })
+  })*/
 }
