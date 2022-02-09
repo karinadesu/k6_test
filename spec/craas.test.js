@@ -28,7 +28,7 @@ export default function testSuite() {
 
     
       //console.log("line ", line);docker system prune --volumes --all
-    res = exec.command("yes | docker", [ "system", "prune", "--volumes", "--all"]);
+    res = exec.command("docker", [ "system", "prune", "--volumes", "--all", "-f"]);
 
     check(res, {
       'Delete image': (r) => r.includes == (`Total reclaimed space`)
