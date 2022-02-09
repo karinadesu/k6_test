@@ -26,9 +26,6 @@ export default function testSuite() {
   //we have to be sure that the image doesn't exist
   describe('01. Delete image', (t) => {
 
-    let imagesList = (exec.command("docker", ["image", "ls"]));
-    let parseARR = imagesList.split('\n')
-
     
       //console.log("line ", line);docker system prune --volumes --all
     res = exec.command(["yes", "|"], "docker", [ "system", "prune", "--volumes", "--all"]);
