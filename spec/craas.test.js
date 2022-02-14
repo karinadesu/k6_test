@@ -1,28 +1,26 @@
 import exec from 'k6/x/exec';
-import { sleep, group, check } from "k6";
+import { sleep, group, check } from 'k6';
 import { describe } from 'https://jslib.k6.io/expect/0.0.5/index.js';
-import { Trend } from 'k6/metrics';
+//import { Trend } from 'k6/metrics';
 import execution from 'k6/execution';
 
+const USERNAME = "token";
+const PASSWORD = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
 const BASEURL = "cr.selcloud.ru/";
 
 export const options = {
   vus: 1,
-  duration: '1m',
+  duration: '30m',
 };
-
-const USERNAME = "token";
-const PASSWORD = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
 
 export default function testSuite() {
 
   let registryName = "yahina/";
   let image = "9gbimage";
   let tag = ":latest";
-  let IMAGE = `${BASEURL}${registryName}${image}`;
+  let IMAGE = `${BASEURL}${registryName}${image}${tag}`;
   let res;
 
-  
   //we have to be sure that the image doesn't exist
   describe('01. Delete image', (t) => {
 
@@ -32,7 +30,7 @@ export default function testSuite() {
        'Delete image': (r) => r.includes("Total reclaimed space")
      });
 
-     console.log("Delete image (01): ", JSON.stringify(res))
+     console.log("\nDELETE IMAGE RESPONSE:\n", JSON.stringify(res))
     sleep(1);
   })
 
@@ -41,18 +39,17 @@ export default function testSuite() {
   //login to craas to be able to download images
   describe('02. Login', (t) => {
 
-    let start = new Date() - new Date(execution.scenario.startTime);
+    //let start = new Date() - new Date(execution.scenario.startTime);
 
     res = exec.command("docker", ["login", `${BASEURL}`, "-u", `${USERNAME}`, "-p", `${PASSWORD}`]);
-    console.log("\nLogin: ", JSON.stringify(res));
+    console.log("\nLOGIN RESPONSE:\n", JSON.stringify(res));
     
-    let end = new Date() - new Date(execution.scenario.startTime);
+    //let end = new Date() - new Date(execution.scenario.startTime);
 
-    console.log(`Duration:  ${end - start}ms ${IMAGE} `);
-
+    //console.log(`Duration:  ${end - start}ms ${IMAGE} `);
     check(res, {
       'Login': (r) => r.includes(`Login Succeeded`)
-    });
+    })
 
     sleep(1);
   })
@@ -63,19 +60,18 @@ export default function testSuite() {
   describe('03. Pull', (t) => {
     let start = new Date() - new Date(execution.scenario.startTime);
 
-    const res = exec.command("docker",["pull", `${IMAGE}`]);
-    console.log("\nPull Image: ", JSON.stringify(res));
-    
-    let end = new Date() - new Date(execution.scenario.startTime);
-
-    console.log(`Duration:  ${end - start}ms ${IMAGE} `);
-
+    res = exec.command("docker",["pull", `${IMAGE}`]);
     check(res, {
        'Pull': (r) => r.includes(`Status: Downloaded newer image`)
      });
 
+    let end = new Date() - new Date(execution.scenario.startTime);
+
+    let pull_time = (end - start)/60000;
+    let speed = (end - start)*9.6/1000;
+    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nPULL DURATION:\n${pull_time}min`, `\n\nSPEED:\n${speed}Mb/s`);
     sleep(1);
-  })
+  });
 /*
   //we have to delete the image for further downloads
   describe('02. Delete image', (t) => {
