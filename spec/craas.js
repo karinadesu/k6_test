@@ -16,14 +16,11 @@ export const options = {
 export default function testSuite() {
 
   let registryName = "yahina/";
-  let image = "9gbimage";
-  let tag = ":latest";
+  let image = "test/ff324/1";
+  let tag = ":1.8.3rc1";
   let IMAGE = `${BASEURL}${registryName}${image}${tag}`;
   let res;
   
-
-  console.log(text)
-
   //we have to be sure that the image doesn't exist
   describe('01. Delete image', (t) => {
 
@@ -75,8 +72,9 @@ export default function testSuite() {
     let end = new Date() - new Date(execution.scenario.startTime);
 
     let pull_time = (end - start)/1000; //sec
-    let image_size = 9.6*1024; //mb
+    let image_size = 9.03; //mb
     let speed = image_size/pull_time;
+    
     console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nPULL DURATION:\n${pull_time/60}min`, `\n\nSPEED:\n${speed}Mb/s`);
     sleep(1);
   });

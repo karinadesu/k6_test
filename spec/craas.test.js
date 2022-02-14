@@ -17,14 +17,19 @@ export const options = {
 export default function testSuite() {
 
   let registryName = "yahina/";
-  let image = "3gbimag2e";
-  let tag = ":latest";
+  let image = "test/ff324/1";
+  let tag = ":1.8.3rc1";
   let IMAGE = `${BASEURL}${registryName}${image}${tag}`;
   let res;
-  let text = d.toDateString();
+  let date = d.toDateString()
   let time = d.toTimeString();
+  let start_pull_time;
+  let end_pull_time;
+  let pull_time;
+  let image_size_string;
+  let pull_speed;
 
-  console.log("START TIME: ", text, time);
+  console.log("START TIME: ", date, time);
 
   //we have to be sure that the image doesn't exist
   describe('01. Delete image', (t) => {
@@ -63,21 +68,42 @@ export default function testSuite() {
 
   //execution of 'docker pull <image> command'
   describe('03. Pull', (t) => {
-    let start = new Date() - new Date(execution.scenario.startTime);
+    start_pull_time = new Date() - new Date(execution.scenario.startTime);
 
     res = exec.command("docker",["pull", `${IMAGE}`]);
     check(res, {
        'Pull': (r) => r.includes(`Status: Downloaded newer image`)
      });
 
-    let end = new Date() - new Date(execution.scenario.startTime);
-
-    let pull_time = (end - start)/1000; //sec
-    let image_size = 9.6*1024; //mb
-    let speed = image_size/pull_time;
-    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nPULL DURATION:\n${pull_time/60}min`, `\n\nSPEED:\n${speed}Mb/s`);
+    end_pull_time = new Date() - new Date(execution.scenario.startTime);
     sleep(1);
-    console.log("END TIME: ", text, time);
+  });
+
+  describe('04. Images', (t) => {
+    let image_size;
+
+    res = exec.command("docker",["image", "ls"]);
+
+    let parseARR = res.split(' ')
+
+    parseARR.forEach(line =>{
+      if (line.includes('GB') || line.includes('MB')) {
+        image_size_string = line;
+        image_size = parseFloat(line);
+      }
+    })
+
+    pull_time = (end_pull_time - start_pull_time)/1000; //sec
+
+    if (image_size_string.includes('GB')) pull_speed = image_size*1024/pull_time;
+    else if (image_size_string.includes('MB')) pull_speed = image_size/pull_time;
+    
+    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nIMAGE SIZE:\n`, image_size_string, `\n\nPULL DURATION:\n${pull_time} sec\n${pull_time/60} min`, `\n\nSPEED:\n${Math.round(pull_speed)} Mb/s`);
+
+    
+    // date = d.toDateString();
+    // time = d.toTimeString();
+    // console.log("END TIME: ", date, time);
   });
 /*
   //we have to delete the image for further downloads
