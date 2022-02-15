@@ -1,33 +1,36 @@
 import exec from 'k6/x/exec';
 import { sleep, group, check } from 'k6';
 import { describe } from 'https://jslib.k6.io/expect/0.0.5/index.js';
-
 import execution from 'k6/execution';
+import { Trend } from 'k6/metrics';
 
 const USERNAME = "token";
 const PASSWORD = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
 const BASEURL = "cr.selcloud.ru/";
 const d = new Date();
+const pullTimeTrend = new Trend('pull_time_sec');
+const pullSpeedTrend = new Trend('pull_speed_mbs');
+
 
 export const options = {
   vus: 1,
-  duration: '30m',
+  duration: '20m',
 };
 
 export default function testSuite() {
 
   let registryName = "yahina/";
-  let image = "test/ff324/1";
-  let tag = ":1.8.3rc1";
+  let image = "3gbimag2e";
+  let tag = ":latest";
   let IMAGE = `${BASEURL}${registryName}${image}${tag}`;
   let res;
-  let date = d.toDateString()
+  let date = d.toDateString();
   let time = d.toTimeString();
   let start_pull_time;
   let end_pull_time;
-  let pull_time;
+  let pull_time_sec;
   let image_size_string;
-  let pull_speed;
+  let pull_speed_mbs;
 
   console.log("START TIME: ", date, time);
 
@@ -76,9 +79,13 @@ export default function testSuite() {
      });
 
     end_pull_time = new Date() - new Date(execution.scenario.startTime);
-    sleep(1);
-  });
 
+    sleep(1);
+  })
+
+  &&
+
+  //get list of all images, get image size, calculations of pulling time and pulling speed
   describe('04. Images', (t) => {
     let image_size;
 
@@ -93,40 +100,19 @@ export default function testSuite() {
       }
     })
 
-    pull_time = (end_pull_time - start_pull_time)/1000; //sec
+    pull_time_sec = Math.floor((end_pull_time - start_pull_time)*100)/100/1000; //sec
 
-    if (image_size_string.includes('GB')) pull_speed = image_size*1024/pull_time;
-    else if (image_size_string.includes('MB')) pull_speed = image_size/pull_time;
+    if (image_size_string.includes('GB')) pull_speed_mbs = (image_size*1024)/pull_time_sec; // convert image size from Gb to Mb (Mb/s)
+    else if (image_size_string.includes('MB')) pull_speed_mbs = image_size/pull_time_sec; // Mb/s
     
-    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nIMAGE SIZE:\n`, image_size_string, `\n\nPULL DURATION:\n${pull_time} sec\n${pull_time/60} min`, `\n\nSPEED:\n${Math.round(pull_speed)} Mb/s`);
-
+    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nIMAGE SIZE:\n`, image_size_string, `\n\nPULL DURATION:\n${pull_time_sec} sec\n${pull_time_sec/60} min`, `\n\nSPEED:\n${Math.floor(pull_speed_mbs*100)/100} Mb/s`);
     
+    pullTimeTrend.add(pull_time_sec);
+    pullSpeedTrend.add(pull_speed_mbs);
+    
+    sleep(1);
     // date = d.toDateString();
     // time = d.toTimeString();
     // console.log("END TIME: ", date, time);
   });
-/*
-  //we have to delete the image for further downloads
-  describe('02. Delete image', (t) => {
-
-    let imagesList = (exec.command("docker", ["image", "ls"]));
-    let parseARR = imagesList.split('\n')
-
-    parseARR.forEach(line =>{
-
-      console.log("line ", line);
-
-      if (IMAGE.includes(line)) {
-
-          console.log(`SUCCESSFULLY FOUND IMAGE: ${IMAGE}`);
-          res = exec.command("docker", [ "rmi", "-f", `${IMAGE}${tag}`]);
-          console.log("Delete Image (last case): ", JSON.stringify(res));
-      }
-    })
-    check(res, {
-      'Delete image': (r) => r.includes(`Untagged: ${IMAGE}${tag}`)
-    });
-
-      sleep(1);
-  })*/
 }
