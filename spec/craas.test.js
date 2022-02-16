@@ -4,25 +4,26 @@ import { describe } from 'https://jslib.k6.io/expect/0.0.5/index.js';
 import execution from 'k6/execution';
 import { Trend } from 'k6/metrics';
 
-const USERNAME = "token";
-const PASSWORD = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
-const BASEURL = "cr.selcloud.ru/";
+const USERNAME = `${__ENV.CRAAS_USERNAME}`;
+const PASSWORD = `${__ENV.CRAAS_PASSWORD}`;
+const BASEURL = "cr.selcloud.ru";
+const registryName = `${__ENV.CRAAS_REGISTRY}`;
+const image = `${__ENV.CRAAS_IMAGE}`;
+const tag = `${__ENV.CRAAS_TAG}`;
+const IMAGE = `${BASEURL}/${registryName}/${image}:${tag}`;
 const d = new Date();
-const pullTimeTrend = new Trend('pull_time_sec');
+const pullTimeTrendSec = new Trend('pull_time_sec');
+const pullTimeTrendMin = new Trend('pull_time_min');
 const pullSpeedTrend = new Trend('pull_speed_mbs');
 
 
 export const options = {
-  vus: 1,
-  duration: '20m',
+  vus: `${__ENV.CRAAS_VUS}`,
+  duration: `${__ENV.CRAAS_DURATION}`,
 };
 
 export default function testSuite() {
 
-  let registryName = "yahina/";
-  let image = "3gbimag2e";
-  let tag = ":latest";
-  let IMAGE = `${BASEURL}${registryName}${image}${tag}`;
   let res;
   let date = d.toDateString();
   let time = d.toTimeString();
@@ -35,19 +36,19 @@ export default function testSuite() {
   console.log("START TIME: ", date, time);
 
   //we have to be sure that the image doesn't exist
-  describe('01. Delete image', (t) => {
+  // describe('01. Delete image', (t) => {
 
-    res = exec.command("docker", ["system", "prune", "--volumes", "--all", "--force"]);
+  //   res = exec.command("docker", ["system", "prune", "--volumes", "--all", "--force"]);
 
-     check(res, {
-       'Delete image': (r) => r.includes("Total reclaimed space")
-     });
+  //    check(res, {
+  //      'Delete image': (r) => r.includes("Total reclaimed space")
+  //    });
 
-     console.log("\nDELETE IMAGE RESPONSE:\n", JSON.stringify(res))
-    sleep(1);
-  })
+  //    console.log("\nDELETE IMAGE RESPONSE:\n", JSON.stringify(res))
+  //   sleep(1);
+  // })
 
-  &&
+  // &&
 
   //login to craas to be able to download images
   describe('02. Login', (t) => {
@@ -101,13 +102,14 @@ export default function testSuite() {
     })
 
     pull_time_sec = Math.floor((end_pull_time - start_pull_time)*100)/100/1000; //sec
+    let pull_time_min = Math.floor((pull_time_sec/60)*100)/100;
 
     if (image_size_string.includes('GB')) pull_speed_mbs = (image_size*1024)/pull_time_sec; // convert image size from Gb to Mb (Mb/s)
     else if (image_size_string.includes('MB')) pull_speed_mbs = image_size/pull_time_sec; // Mb/s
     
-    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nIMAGE SIZE:\n`, image_size_string, `\n\nPULL DURATION:\n${pull_time_sec} sec\n${pull_time_sec/60} min`, `\n\nSPEED:\n${Math.floor(pull_speed_mbs*100)/100} Mb/s`);
-    
-    pullTimeTrend.add(pull_time_sec);
+    console.log(`\nIMAGE:\n${IMAGE}\n\nRESPONSE PULL:\n`, JSON.stringify(res), `\n\nIMAGE SIZE:\n`, image_size_string, `\n\nPULL DURATION:\n${pull_time_sec} sec\n${pull_time_min} min`, `\n\nSPEED:\n${Math.floor(pull_speed_mbs*100)/100} Mb/s`);
+    pullTimeTrendSec.add(pull_time_sec);
+    pullTimeTrendMin.add(pull_time_min);
     pullSpeedTrend.add(pull_speed_mbs);
     
     sleep(1);

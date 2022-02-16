@@ -7,13 +7,13 @@ import { Trend } from 'k6/metrics';
 const USERNAME = "token";
 const PASSWORD = "bf37e0e1-a9b2-4d6a-8266-1c6657c515f2";
 const BASEURL = "cr.selcloud.ru/";
-const myTrend = new Trend('pull_time');
-const myTrend = new Trend('speed');
+
 
 export const options = {
   vus: 1,
   duration: '30m',
 };
+const myTrend = new Trend('my_trend');
 
 
 export default function testSuite() {
@@ -56,8 +56,8 @@ export default function testSuite() {
     let end = new Date() - new Date(execution.scenario.startTime);
     let pull_time = (end - start)/1000;
 
-    myTrend.add(pull_time);
-    console.log(myTrend.name); // waiting_time
+    myTrend.add(1);
+    myTrend.add(2, { tag1: 'value', tag2: 'value2' });
 
     console.log(`Duration:  ${end - start}ms ${IMAGE} `);
     check(res, {
